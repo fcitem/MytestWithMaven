@@ -26,7 +26,7 @@ public class MultiplexerServer implements Runnable{
 			//获取与此通道关联的服务器套接字并绑定到端口号
 			serverChannel.socket().bind(new InetSocketAddress(port),1024);  
 			//向selector注册感兴趣的监听事件
-			serverChannel.register(selector,SelectionKey.OP_ACCEPT);   
+			serverChannel.register(selector,SelectionKey.OP_ACCEPT);
 			System.out.println("**version-1.0** The server is start in port:"+port);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -34,7 +34,7 @@ public class MultiplexerServer implements Runnable{
 	}
 	@Override
 	public void run() {
-		while (! stop) {
+		while (! stop) {     //轮询select
 			try {
 				//返回一组处于就绪状态的selectkey集合,参数为超时时间
 				selector.select(1000);
@@ -44,7 +44,7 @@ public class MultiplexerServer implements Runnable{
 				SelectionKey key=null;
 				while (it.hasNext()) {
 					key=it.next();
-					it.remove();            //移除
+//					it.remove();            //移除
 					handleMsg(key);
 				}
 			} catch (IOException e) {
@@ -77,21 +77,28 @@ public class MultiplexerServer implements Runnable{
 					//读取消息到缓冲区,返回读取的字节数，可能为零，如果该通道已到达流的末尾，则返回 -1 
 					int readbytes=channel.read(buffer);
 					StringBuilder body=new StringBuilder();
-					while (readbytes>0) {  //未读到末尾
+					if (readbytes>0) {  //未读到末尾
 				        //将position设置为0,limit设置为当前位置,然后处理的数据就是从position到limit的数据,也就是有效数据
 						buffer.flip(); 
 						byte[] bytes=new byte[buffer.remaining()]; //返回position到limit之间的元素数
 						buffer.get(bytes);    //将缓冲区的元素复制到byte数组
 						body.append(new String(bytes,"utf-8"));
 						buffer.clear();
-						readbytes=channel.read(buffer);
 					}
 					System.out.println("The Server received a msg:"+body);
 					dowrite("Welcome you online",channel);   //写响应消息
 					//取消此键的通道到其选择器的注册
 					key.cancel();
 					ssc.close();
-				} catch (IOException e) {
+				} catch (Throwable e) {
+					key.cancel();
+					if(key.channel()!=null){
+						try {
+							key.channel().close();
+						} catch (IOException e1) {
+							e1.printStackTrace();
+						}
+					}
 					e.printStackTrace();
 				}
 			}
@@ -102,9 +109,7 @@ public class MultiplexerServer implements Runnable{
 			byte[] bytes=responseMsg.getBytes();
 			ByteBuffer buf=ByteBuffer.allocate(bytes.length);
 			buf.put(bytes);
-			System.out.println("position: "+buf.position());
 			buf.flip();
-			System.out.println("flip后position:"+buf.position());
 			try {
 				channel.write(buf);      //写入响应消息
 			} catch (IOException e) {

@@ -1,4 +1,4 @@
-package com.nio.test1.client;
+package com.nio.test2.client;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -63,7 +63,7 @@ public class MultiplexerClient implements Runnable {
 						byte[] bytes = new byte[readbytes];
 						buffer.get(bytes);
 						String msg = new String(bytes, "utf-8");
-						System.out.println("**version 1.0** server: " + msg);
+						System.out.println("**version 1.0 ** server: " + msg);
 					}
 				}
 			} catch (Throwable e) {
@@ -91,6 +91,7 @@ public class MultiplexerClient implements Runnable {
 				socketChannel.register(selector, SelectionKey.OP_CONNECT);
 			}
 		} catch (Throwable e) {
+			
 			e.printStackTrace();
 		}
 	}
